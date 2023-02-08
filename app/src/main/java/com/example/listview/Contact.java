@@ -19,6 +19,11 @@ public class Contact {
         this.phone = phone;
 
     }
+    
+    public Contact(int id, String images) {
+        this.id = id;
+        this.images = images;
+    }
 
     public int getId() {
         return id;

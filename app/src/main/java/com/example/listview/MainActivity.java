@@ -66,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         lstContact = findViewById(R.id.lstContact);
         btnAdd = findViewById(R.id.btnAdd);
         lstContact.setAdapter(ListAdapter);
+
     }
 
     private void SortByPhone() {

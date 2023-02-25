@@ -2,10 +2,15 @@ package com.example.listview;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ActivityNotFoundException;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.AlarmClock;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.ContextMenu;
@@ -16,6 +21,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -29,7 +35,8 @@ public class MainActivity extends AppCompatActivity {
     private EditText etSearch;
     private ListView lstContact;
     private FloatingActionButton btnAdd;
-    int SelectedItemId;
+    private int SelectedItemId;
+    private MyDB db;
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -65,12 +72,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onContextItemSelected(@NonNull MenuItem item) {
+        Contact c = ContactList.get(SelectedItemId);
         switch (item.getItemId()){
+
             case R.id.mnuEdit:
                 //Tạo đối tượng Intent để gọi tới Sub
                 Intent intent = new Intent(MainActivity.this, SubActivity.class);
                 //2. Truyền dữ liệu sang sub bằng bundle nếu cần
-                Contact c = ContactList.get(SelectedItemId);
+
                 Bundle b = new Bundle();
                 b.putInt("Id", c.getId());
                 b.putString("Image", c.getImages());
@@ -80,6 +89,53 @@ public class MainActivity extends AppCompatActivity {
                 //3.Mở sub bằng cách gọi hàm
                 //staractivity hoac staractivityforresult
                 startActivityForResult(intent, 200);
+                break;
+            case R.id.mnuDelete:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Notification");
+                builder.setMessage("Do you want delete?");
+                builder.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        ContactList.remove(SelectedItemId);
+                        lstContact.setAdapter(ListAdapter);
+                    }
+                });
+                builder.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+                AlertDialog dialog = builder.create();
+                dialog.show();
+                break;
+            case R.id.mnuCall:
+                Intent in = new Intent(Intent.ACTION_DIAL,
+                        Uri.parse("tel:" + c.getPhone()));
+                startActivity(in);
+                break;
+            case R.id.mnuChat:
+                Intent intent1 = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto: " + c.getPhone()));
+                intent1.putExtra("sms_body", "Nội dung tin nhắn");
+                startActivity(intent1);
+                break;
+            case R.id.mnuEmail:
+                Intent intent2 = new Intent(Intent.ACTION_SENDTO);
+                intent2.setData(Uri.parse("mailto:"));
+                intent2.putExtra(Intent.EXTRA_EMAIL, new String[]{"email@address.com"});
+                intent2.putExtra(Intent.EXTRA_SUBJECT, "Tiêu đề email");
+                intent2.putExtra(Intent.EXTRA_TEXT, "Nội dung email");
+                try{
+                    startActivity(intent2);
+                }
+                catch(ActivityNotFoundException e){
+                    Toast.makeText(this, "Ứng dụng Email không tồn tại trên thiết bị của bạn", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case R.id.mnuAlarm:
+                Intent intent3 = new Intent(AlarmClock.ACTION_SHOW_ALARMS);
+                startActivity(intent3);
                 break;
         }
         return super.onContextItemSelected(item);
@@ -95,12 +151,16 @@ public class MainActivity extends AppCompatActivity {
         Contact newcontact = new Contact(id, "Image", name, phone);
         if(requestCode == 100 &&resultCode == 150)
         {//truong hop them
-
+            //ContactList.add(new Contact(id, "", name, phone));
+            db.addContact(newcontact);
         }
         else if(requestCode == 200 && resultCode == 150)
         {//truong hop sua
-
+            //ContactList.set(SelectedItemId, new Contact(id, "",name, phone));
+            db.updateContact(SelectedItemId, newcontact);
         }
+        ListAdapter.notifyDataSetChanged();
+        lstContact.setAdapter(ListAdapter);
     }
 
     @Override
@@ -108,11 +168,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         //thiet lap du lieu mau
-        ContactList = new ArrayList<>();
-        ContactList.add(new Contact(2, "img2", "Trần Thị Bích", "4567899"));
-        ContactList.add(new Contact(3, "img3", "Mai Thu Hà", "6789956789"));
-        ContactList.add(new Contact(1, "img1", "Nguyễn Văn An", "56789056"));
-        ListAdapter = new Adapter(ContactList, MainActivity.this);
+//        ContactList = new ArrayList<>();
+//        ContactList.add(new Contact(2, "img2", "Trần Thị Bích", "4567899"));
+//        ContactList.add(new Contact(3, "img3", "Mai Thu Hà", "6789956789"));
+//        ContactList.add(new Contact(1, "img1", "Nguyễn Văn An", "56789056"));
+
+        //tao moi csdl
+        db = new MyDB(this, "ContactDB", null, 1);
+        //them du lieu LAN DAU vao db
+        db.addContact(new Contact(1, "img1", "Nguyen Van An", "0982358769"));
+        db.addContact(new Contact(2, "img2", "Tran Thi Bich", "0983358788"));
+        db.addContact(new Contact(3, "img3", "Mai Thu Ha", "0982385765"));
+        ContactList = db.getAllContact();
+
+        ListAdapter = new Adapter(ContactList, this);
         etSearch = findViewById(R.id.etSearch);
         lstContact = findViewById(R.id.lstContact);
         btnAdd = findViewById(R.id.btnAdd);

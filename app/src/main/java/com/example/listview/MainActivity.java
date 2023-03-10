@@ -8,7 +8,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.AlarmClock;
 import android.text.Editable;
@@ -22,6 +24,7 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
+import android.Manifest;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -37,6 +40,24 @@ public class MainActivity extends AppCompatActivity {
     private FloatingActionButton btnAdd;
     private int SelectedItemId;
     private MyDB db;
+    private ContentProvider cp;
+
+    int PERMISSIONS_REQUEST_READ_CONTACT = 100;
+ //   ConnectionReceiver receiver;
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if(requestCode == PERMISSIONS_REQUEST_READ_CONTACT){
+            if(grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                //Permisson is granted
+                this.ShowContact();
+            }else {
+                Toast.makeText(this, "Until you grant the permission, ", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -97,8 +118,10 @@ public class MainActivity extends AppCompatActivity {
                 builder.setPositiveButton("YES", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        ContactList.remove(SelectedItemId);
-                        lstContact.setAdapter(ListAdapter);
+                        //ContactList.remove(SelectedItemId);
+                        //lstContact.setAdapter(ListAdapter);
+                        db.deleteContact(ContactList.get(SelectedItemId).getId());
+                        resetData();
                     }
                 });
                 builder.setNegativeButton("NO", new DialogInterface.OnClickListener() {
@@ -157,9 +180,18 @@ public class MainActivity extends AppCompatActivity {
         else if(requestCode == 200 && resultCode == 150)
         {//truong hop sua
             //ContactList.set(SelectedItemId, new Contact(id, "",name, phone));
-            db.updateContact(SelectedItemId, newcontact);
+            db.updateContact(id, newcontact);
+            //ContactList = db.getAllContact();
         }
         ListAdapter.notifyDataSetChanged();
+        //lstContact.setAdapter(ListAdapter);
+        resetData();
+    }
+
+    private void resetData(){
+        db = new MyDB(MainActivity.this, "ContactDB",null,1);
+        ContactList  = db.getAllContact();
+        ListAdapter = new Adapter(ContactList, MainActivity.this);
         lstContact.setAdapter(ListAdapter);
     }
 
@@ -176,12 +208,12 @@ public class MainActivity extends AppCompatActivity {
         //tao moi csdl
         db = new MyDB(this, "ContactDB", null, 1);
         //them du lieu LAN DAU vao db
-        db.addContact(new Contact(1, "img1", "Nguyen Van An", "0982358769"));
-        db.addContact(new Contact(2, "img2", "Tran Thi Bich", "0983358788"));
-        db.addContact(new Contact(3, "img3", "Mai Thu Ha", "0982385765"));
+        //db.addContact(new Contact(1, "img1", "Nguyen Van An", "0982358769"));
+        //db.addContact(new Contact(2, "img2", "Tran Thi Bich", "0983358788"));
+        //db.addContact(new Contact(3, "img3", "Mai Thu Ha", "0982385765"));
         ContactList = db.getAllContact();
 
-        ListAdapter = new Adapter(ContactList, this);
+        //ListAdapter = new Adapter(ContactList, this);
         etSearch = findViewById(R.id.etSearch);
         lstContact = findViewById(R.id.lstContact);
         btnAdd = findViewById(R.id.btnAdd);
@@ -196,7 +228,14 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, 100);
             }
         });
-        lstContact.setAdapter(ListAdapter);
+
+        ShowContact();
+        //lstContact.setAdapter(ListAdapter);
+        //Load Callogs
+        //Load Browser history
+        //Load va hien thi cac file hinh anh, lam chuong trinh giong gallery
+        //Load va hien thi danh sach cac file nhac, video
+
         registerForContextMenu(lstContact);
         lstContact.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
@@ -234,5 +273,16 @@ public class MainActivity extends AppCompatActivity {
         ListAdapter.notifyDataSetChanged();
     }
 
+    private void ShowContact()
+    {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED){
+            requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACT);
+        } else{
+            cp = new ContentProvider(this);
+            ContactList = cp.getAllContact();
+            ListAdapter = new Adapter(ContactList, this);
+            lstContact.setAdapter(ListAdapter);
+        }
+    }
 
 }

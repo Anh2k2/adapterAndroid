@@ -24,6 +24,11 @@ public class Contact {
         this.lastName = str[str.length-1];
 
     }
+    
+    public Contact(int id, String images) {
+        this.id = id;
+        this.images = images;
+    }
 
     public String getLastName() {
         return lastName;

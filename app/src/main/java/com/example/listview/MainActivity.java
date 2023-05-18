@@ -1,13 +1,18 @@
 package com.example.listview;
 
+
+import static androidx.core.content.PermissionChecker.checkSelfPermission;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -43,7 +48,10 @@ public class MainActivity extends AppCompatActivity {
     private ContentProvider cp;
 
     int PERMISSIONS_REQUEST_READ_CONTACT = 100;
- //   ConnectionReceiver receiver;
+
+    ConnectionReceiver connectionReceiver;
+
+    IntentFilter intentFilter;
 
 
     @Override
@@ -77,6 +85,10 @@ public class MainActivity extends AppCompatActivity {
             case R.id.mnuSortPhone:
                 //sap xep ArrayList<Contact> theo phone
                 SortByPhone();
+                break;
+            case R.id.mnuBroadcast:
+                Intent intent = new Intent("com.example.listview.SOME_ACTION");
+                sendBroadcast(intent);
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -261,7 +273,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        connectionReceiver = new ConnectionReceiver();
+        intentFilter = new IntentFilter("com.example.listview.SOME_ACTION");
+        intentFilter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        intentFilter.addAction("android.net.conn.CONNECTIVITY_CHANCE");
+        registerReceiver(connectionReceiver, intentFilter);
     }
+
+
 
     private void SortByPhone() {
         Collections.sort(ContactList, new Contact.PhoneOrder());
